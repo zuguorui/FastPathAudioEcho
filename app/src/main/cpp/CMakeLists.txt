@@ -5,15 +5,16 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
-file(GLOB CPP_FILES "src/main/cpp/*.cpp", "src/main/cpp/SLESEcho/*.cpp", "src/main/cpp/AAudioEcho/*.cpp", "src/main/cpp/OboeEcho/*.cpp")
+file(GLOB CPP_FILES "./*.cpp", "./SLESEcho/*.cpp", "./AAudioEcho/*.cpp", "./OboeEcho/*.cpp")
 
-include_directories("src/main/cpp/", "src/main/cpp/SLESEcho/", "src/main/cpp/AAudioEcho/", "src/main/cpp/OboeEcho/")
+include_directories("./", "./SLESEcho/", "./AAudioEcho/", "./OboeEcho/")
 
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
 # Gradle automatically packages shared libraries with your APK.
+
 
 add_library( # Sets the name of the library.
         native-lib
@@ -25,7 +26,7 @@ add_library( # Sets the name of the library.
         ${CPP_FILES})
 
 # Set the path to the Oboe directory.
-set (OBOE_DIR "/Users/incus/work_space/AndroidProject/oboe")
+set (OBOE_DIR "D:\\workspace\\AndroidProject\\oboe")
 # Add the Oboe library as a subdirectory in your project.
 # add_subdirectory tells CMake to look in this directory to
 # compile oboe source files using oboe's CMake file.

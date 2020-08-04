@@ -10,74 +10,56 @@
 #include <android/log.h>
 #include <aaudio/AAudio.h>
 #include "Constants.h"
-#include "BlockRecyclerQueue.h"
+#include "BlockQueue.h"
 #include "thread"
-#include "IAudioFrameProvider.h"
+#include "AAudioPlayer.h"
+#include "AAudioRecorder.h"
 
-#if defined(_INCUS_FRAMEWORK_VER_0)
-extern "C"
-{
-#include "algorithm_control.h"
-#include "audio_process.h"
-}
-#elif defined(_INCUS_FRAMEWORK_VER_1)
-extern "C"
-{
-#include "incus_sdk.h"
-}
-#endif
 
 using namespace std;
 
-class AAudioEcho {
+class AAudioEcho: public IAAudioPlayerCallback, public IAAudioRecorderCallback {
 public:
     AAudioEcho();
     ~AAudioEcho();
-    bool init(int32_t micID);
+    bool init(int32_t sampleRate, int32_t framesPerBuffer = 256, int32_t micID = 0);
     void destroy();
     void start();
     void stop();
 
-    void updateAlgorithmParams(int32_t algorithm_index, const int32_t *left_para, const int32_t *right_para);
-    void algorithmStatusSet(int32_t algorithm_index, int32_t status, int32_t channel);
+    int32_t writeData(AAudioStream *stream, void *audioData, int32_t numFrames) override;
+
+    int32_t readData(AAudioStream *stream, void *audioData, int32_t numFrames) override;
 
 private:
-    AAudioStream *inputStream = NULL;
-    AAudioStream *outputStream = NULL;
+    AAudioPlayer *player = nullptr;
+    AAudioRecorder *recorder = nullptr;
 
-    static aaudio_data_callback_result_t input_callback(AAudioStream *stream, void *userData, void *audioData, int32_t numFrames);
-    aaudio_data_callback_result_t process_input(AAudioStream *stream, void *audioData, int32_t numFrames);
+    int32_t sampleRate;
+    int32_t micID;
 
-    static aaudio_data_callback_result_t output_callback(AAudioStream *stream, void *userData, void *audioData, int32_t numFrames);
-    aaudio_data_callback_result_t process_output(AAudioStream *stream, void *audioData, int32_t numFrames);
+    int32_t framesPerBuffer = 0;
 
-    int16_t emptyBuffer[SAMPLES_PER_FRAME];
-    int32_t convertBuffer[SAMPLES_PER_FRAME];
-    int16_t buffer[SAMPLES_PER_FRAME];
+    AudioFrame *recordingFrame = nullptr;
+    int32_t recordingFrameIndex = 0;
 
-
-    AudioFrame *playingFrame = NULL;
+    AudioFrame *playingFrame = nullptr;
     int32_t playingFrameIndex = 0;
 
-    char *algorithm_memory_page = NULL;
+    BlockQueue<AudioFrame *> dataQueue{10};
+    BlockQueue<AudioFrame *> junkQueue{10};
+
+    inline AudioFrame *getFreeNode();
+
+    bool newRecorder();
+    void deleteRecorder();
+    bool newPlayer();
+    void deletePlayer();
+
+    bool playFlag = false;
 
 
-    BlockRecyclerQueue<AudioFrame *> *inputQueue = NULL;
 
-    static void recordCallback(void *context);
-    thread *recordThread = NULL;
-    void recordLoop();
-    bool stopRecordFlag = false;
-
-#if defined(_INCUS_FRAMEWORK_VER_1)
-    AlgorithmInstance algorithmInstance;
-    bool algorithmOn = false;
-    int16_t algorithmBuffer[2 * SAMPLES_PER_FRAME];
-#endif
-
-#ifdef DEBUG_PCM
-    FILE *pcmFile = NULL;
-#endif
 
 };
 

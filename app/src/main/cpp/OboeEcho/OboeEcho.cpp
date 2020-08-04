@@ -17,24 +17,26 @@ OboeEcho::~OboeEcho() {
 
 }
 
-bool OboeEcho::init(int32_t micID) {
-    bufferQueue = new BlockRecyclerQueue<AudioFrame *>(10);
+bool OboeEcho::init(int32_t sampleRate, int32_t framesPerBuffer, int32_t micID) {
 
-    playCallback = new OboeEchoPlayCallback(bufferQueue);
-    playCallback->init();
-    recordCallback = new OboeEchoRecordCallback(bufferQueue);
+    this->sampleRate = sampleRate;
+    this->framesPerBuffer = framesPerBuffer;
+
+    buffer = new BlockRingBuffer<int16_t>(3 * framesPerBuffer);
+
+
 
     oboe::Result result;
     AudioStreamBuilder inputBuilder;
     inputBuilder.setAudioApi(AudioApi::AAudio);
-    inputBuilder.setCallback(recordCallback);
+    inputBuilder.setCallback(this);
     inputBuilder.setDirection(Direction::Input);
     inputBuilder.setChannelCount(ChannelCount::Mono);
     inputBuilder.setPerformanceMode(PerformanceMode::LowLatency);
     inputBuilder.setSharingMode(SharingMode::Shared);
     inputBuilder.setFormat(AudioFormat::I16);
-    inputBuilder.setSampleRate(SAMPLE_RATE);
-    inputBuilder.setFramesPerCallback(SAMPLES_PER_FRAME);
+    inputBuilder.setSampleRate(sampleRate);
+    inputBuilder.setFramesPerCallback(framesPerBuffer);
     inputBuilder.setDeviceId(micID);
 
     result = inputBuilder.openStream(&recordStream);
@@ -46,14 +48,14 @@ bool OboeEcho::init(int32_t micID) {
 
     AudioStreamBuilder outputBuilder;
     outputBuilder.setAudioApi(AudioApi::AAudio);
-    outputBuilder.setCallback(playCallback);
+    outputBuilder.setCallback(this);
     outputBuilder.setDirection(Direction::Output);
     outputBuilder.setChannelCount(ChannelCount::Mono);
     outputBuilder.setPerformanceMode(PerformanceMode::LowLatency);
     outputBuilder.setSharingMode(SharingMode::Shared);
     outputBuilder.setFormat(AudioFormat::I16);
-    outputBuilder.setSampleRate(SAMPLE_RATE);
-    outputBuilder.setFramesPerCallback(SAMPLES_PER_FRAME);
+    outputBuilder.setSampleRate(sampleRate);
+    outputBuilder.setFramesPerCallback(framesPerBuffer);
 
     result = outputBuilder.openStream(&playStream);
     if(result != Result::OK)
@@ -79,7 +81,11 @@ void OboeEcho::destroy() {
         playStream->close();
     }
 
-    playCallback->destroy();
+    if(buffer)
+    {
+        delete(buffer);
+        buffer = nullptr;
+    }
 }
 
 void OboeEcho::start() {
@@ -88,49 +94,52 @@ void OboeEcho::start() {
         LOGE("player or recorder not prepared");
         return;
     }
+    playFlag = true;
     playStream->start(10 * NANO_SEC_IN_MILL_SEC);
     recordStream->start(10 * NANO_SEC_IN_MILL_SEC);
 
-//    if(playStream->getState() != StreamState::Started)
-//    {
-//        playStream->requestStart();
-//    }
-//    if(recordStream->getState() != StreamState::Started)
-//    {
-//        recordStream->requestStart();
-//    }
 
 }
 
 void OboeEcho::stop() {
+    playFlag = false;
     if(!recordStream || !playStream)
     {
         LOGE("player or recorder not prepared");
         return;
     }
 
-    bufferQueue->notifyWaitGet();
+    buffer->setWaitGetState(false);
     playStream->stop(10 * NANO_SEC_IN_MILL_SEC);
-    bufferQueue->notifyWaitPut();
+    buffer->setWaitPutState(false);
     recordStream->stop(10 * NANO_SEC_IN_MILL_SEC);
 
-//    playStream->requestStop();
-//    recordStream->requestStop();
+    buffer->setWaitGetState(true);
+    buffer->setWaitPutState(true);
 
-    bufferQueue->discardAll(NULL);
 }
 
-void OboeEcho::updateAlgorithmParams(int32_t algorithm_index, const uint8_t *left_para,
-                                     const uint8_t *right_para) {
-    if(playCallback != NULL)
+DataCallbackResult
+OboeEcho::onAudioReady(AudioStream *oboeStream, void *audioData, int32_t numFrames) {
+    if(!playFlag)
     {
-        playCallback->updateAlgorithmParams(algorithm_index, left_para, right_para);
+        return DataCallbackResult::Stop;
     }
+    if(oboeStream == playStream)
+    {
+        int32_t readSize = buffer->getRange((int16_t *)audioData, numFrames);
+        if(readSize != numFrames)
+        {
+            return DataCallbackResult::Stop;
+        }
+    } else
+    {
+        int32_t writeSize = buffer->putAll((int16_t *)audioData, numFrames);
+        if(writeSize != numFrames)
+        {
+            return DataCallbackResult::Stop;
+        }
+    }
+    return DataCallbackResult::Continue;
 }
 
-void OboeEcho::algorithmStatusSet(int32_t algorithm_index, int32_t status, int32_t channel) {
-    if(playCallback != NULL)
-    {
-        playCallback->algorithmStatusSet(algorithm_index, status, channel);
-    }
-}

@@ -13,77 +13,39 @@
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 
-
-#include "BlockRecyclerQueue.h"
 #include "Constants.h"
+#include "SLESPlayer.h"
+#include "SLESRecorder.h"
+#include "BlockRingBuffer.h"
 
 
 using namespace std;
 
-class SLESEcho {
+class SLESEcho: public ISLESPlayerCallback, public ISLESRecorderCallback{
 public:
     SLESEcho();
     ~SLESEcho();
 
-    bool init(int32_t micID);
+    bool init(int32_t sampleRate, int32_t framesPerBuffer = 256, int32_t micID = -1);
     void destroy();
     void start();
     void stop();
 
+    int32_t writeData(void *audioData, int32_t numFrames) override;
 
+    void readData(void *audioData, int32_t numFrames) override;
 
 private:
-    bool initEngine();
 
-    bool initPlayer();
+    int32_t framesPerBuffer = 0;
+    int32_t sampleRate = 0;
+    int32_t channelCount = 1;
 
-    bool initRecorder();
+    BlockRingBuffer<int16_t> buffer{2048};
 
-    void releaseEngine();
-    void releasePlayer();
-    void releaseRecorder();
-
-    AudioFrame *newAudioFrame();
-
-
-
-    static void playerCallback(SLAndroidSimpleBufferQueueItf bq, void *context);
-    static void recorderCallback(SLAndroidSimpleBufferQueueItf bq, void *context);
-
-    void processInput(SLAndroidSimpleBufferQueueItf bq);
-    void processOutput(SLAndroidSimpleBufferQueueItf bq);
-
-    SLObjectItf engineObject = NULL;
-    SLEngineItf engineEngine;
-
-    SLObjectItf recorderObject = NULL;
-    SLRecordItf recorderRecord;
-
-    SLObjectItf outputMixObject = NULL;
-
-    SLObjectItf playerObject = NULL;
-    SLPlayItf playerPlay;
-
-    SLAndroidSimpleBufferQueueItf recorderBufferQueue;
-    SLAndroidSimpleBufferQueueItf playerBufferQueue;
-
-
-    BlockRecyclerQueue<AudioFrame *> *bufferQueue = NULL;
-
-    AudioFrame *recordingFrame = NULL;
-    AudioFrame *playingFrame = NULL;
-
-    int16_t emptyBuffer[SAMPLES_PER_FRAME];
-    int16_t audioBuffer[SAMPLES_PER_FRAME];
-    int32_t convertBuffer[SAMPLES_PER_FRAME];
-
-    bool processStopFlag = false;
-    thread *processThread = NULL;
-    static void processCallback(void *context);
-    void processLoop();
-
-
-
+    SLESEngine engine;
+    SLESPlayer player;
+    SLESRecorder recorder;
 };
 
 

@@ -27,8 +27,8 @@ public:
     // put a element, if wait = true, put option will wait until the length of data queue is less than specified size.
     void put(T t, bool wait = true);
 
-    // get a element, if wait = true, it will wait until the data queue is not empty. If wait = false, it will return NULL if the data queue is empty.
-    // It will still return NULL even wait = true, in this case, it must be someone call notifyWaitGet() but the data queue is still empty.
+    // get a element, if wait = true, it will wait until the data queue is not empty. If wait = false, it will return nullptr if the data queue is empty.
+    // It will still return nullptr even wait = true, in this case, it must be someone call notifyWaitGet() but the data queue is still empty.
     T get(bool wait = true);
 
     void putToUsed(T t);
@@ -40,7 +40,7 @@ public:
     // notify all the put option to not wait. This will cause put option succeed immediately
     void notifyWaitPut();
 
-    // notify all the get option to return immediately. if data queue is still empty, get option will return a NULL.
+    // notify all the get option to return immediately. if data queue is still empty, get option will return a nullptr.
     void notifyWaitGet();
 
 
@@ -90,7 +90,7 @@ T BlockRecyclerQueue<T>::get(bool wait) {
         }
     }
 
-    T element = NULL;
+    T element = nullptr;
     if(queue.size() != 0)
     {
         element = queue.front();
@@ -139,7 +139,7 @@ int BlockRecyclerQueue<T>::getSize() {
 
 template <class T>
 T BlockRecyclerQueue<T>::getUsed() {
-    T element = NULL;
+    T element = nullptr;
     unique_lock<mutex> usedQueueLock(usedQueueMu);
     if(usedQueue.size() != 0)
     {
@@ -178,7 +178,7 @@ void BlockRecyclerQueue<T>::discardAll(void (*discardCallback)(T)) {
     {
         T t = queue.front();
         queue.pop_front();
-        if(discardCallback != NULL)
+        if(discardCallback != nullptr)
         {
             (*discardCallback)(t);
         }

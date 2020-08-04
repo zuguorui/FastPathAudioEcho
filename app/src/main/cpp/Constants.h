@@ -4,6 +4,12 @@
 
 #ifndef FASTPATHAUDIOECHO_CONSTANTS_H
 #define FASTPATHAUDIOECHO_CONSTANTS_H
+
+#include <iostream>
+#include <stdlib.h>
+#include <string.h>
+
+#define NANO_SEC_IN_MILL_SEC 100000
 struct AudioFrame{
     int64_t pts;
     int16_t *data;

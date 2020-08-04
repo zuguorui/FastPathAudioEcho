@@ -8,37 +8,41 @@
 #include <iostream>
 #include <stdlib.h>
 #include <stdint.h>
-#include "IAudioFrameProvider.h"
-#include "BlockRecyclerQueue.h"
+#include "BlockRingBuffer.h"
 #include "oboe/Oboe.h"
 #include "Constants.h"
-#include "OboeEchoPlayCallback.h"
-#include "OboeEchoRecordCallback.h"
 
 using namespace std;
 using namespace oboe;
 
-class OboeEcho {
+class OboeEcho: public oboe::AudioStreamCallback {
 public:
     OboeEcho();
     ~OboeEcho();
 
-    bool init(int32_t micID);
+    bool init(int32_t sampleRate, int32_t framesPerBuffer = 256, int32_t micID = 0);
     void destroy();
     void start();
     void stop();
 
-    void updateAlgorithmParams(int32_t algorithm_index, const uint8_t *left_para, const uint8_t *right_para);
-    void algorithmStatusSet(int32_t algorithm_index, int32_t status, int32_t channel);
+    DataCallbackResult
+    onAudioReady(AudioStream *oboeStream, void *audioData, int32_t numFrames) override;
 
 private:
-    oboe::AudioStream *recordStream = NULL;
-    oboe::AudioStream *playStream = NULL;
+    int32_t sampleRate = 0;
+    int32_t framesPerBuffer = 0;
+    int32_t micID = -1;
 
-    OboeEchoRecordCallback *recordCallback = NULL;
-    OboeEchoPlayCallback *playCallback = NULL;
+    oboe::AudioStream *recordStream = nullptr;
+    oboe::AudioStream *playStream = nullptr;
 
-    BlockRecyclerQueue<AudioFrame *> *bufferQueue = NULL;
+
+    BlockRingBuffer<int16_t> *buffer = nullptr;
+
+    bool playFlag = false;
+
+
+
 
 };
 
