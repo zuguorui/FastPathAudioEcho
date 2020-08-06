@@ -96,16 +96,23 @@ void AAudioEcho::destroy() {
 
 void AAudioEcho::start() {
     playFlag = true;
-    player->start();
+
     recorder->start();
+    player->start();
 }
 
 void AAudioEcho::stop() {
     playFlag = false;
-    recorder->stop();
-    dataQueue.notifyWaitPush();
     player->stop();
     dataQueue.notifyWaitPull();
+    recorder->stop();
+    dataQueue.notifyWaitPush();
+    AudioFrame *frame;
+    while((frame = dataQueue.pull_front(false)) != nullptr)
+    {
+        junkQueue.push_back(frame, false);
+    }
+
 }
 
 int32_t AAudioEcho::writeData(AAudioStream *stream, void *audioData, int32_t numFrames) {
@@ -116,7 +123,7 @@ int32_t AAudioEcho::writeData(AAudioStream *stream, void *audioData, int32_t num
     }
     if(!playFlag)
     {
-        return AAUDIO_CALLBACK_RESULT_STOP;
+        return AAUDIO_CALLBACK_RESULT_CONTINUE;
     }
     LOGD("writeData, numFrames = %d", numFrames);
     int dstIndex = 0;
@@ -153,7 +160,7 @@ int32_t AAudioEcho::readData(AAudioStream *stream, void *audioData, int32_t numF
     }
     if(!playFlag)
     {
-        return AAUDIO_CALLBACK_RESULT_STOP;
+        return AAUDIO_CALLBACK_RESULT_CONTINUE;
     }
     LOGD("readData, numFrames = %d", numFrames);
     int srcIndex = 0;

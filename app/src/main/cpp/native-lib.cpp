@@ -6,8 +6,8 @@
 
 
 //OboeEcho *echo = nullptr;
-//AAudioEcho *echo = nullptr;
-SLESEcho *echo = nullptr;
+AAudioEcho *echo = nullptr;
+//SLESEcho *echo = nullptr;
 
 
 extern "C" JNIEXPORT jboolean JNICALL
@@ -16,8 +16,8 @@ Java_com_zu_fastpathaudioecho_MainActivity_nInit(JNIEnv *env, jobject instance, 
     if(!echo)
     {
         //echo = new OboeEcho();
-        //echo = new AAudioEcho();
-        echo = new SLESEcho();
+        echo = new AAudioEcho();
+//        echo = new SLESEcho();
     }
     return echo->init(sampleRate, framesPerBuffer);
 }
