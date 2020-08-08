@@ -96,17 +96,18 @@ void AAudioEcho::destroy() {
 
 void AAudioEcho::start() {
     playFlag = true;
-
-    recorder->start();
     player->start();
+    recorder->start();
+
 }
 
 void AAudioEcho::stop() {
     playFlag = false;
-    player->stop();
-    dataQueue.notifyWaitPull();
     recorder->stop();
     dataQueue.notifyWaitPush();
+    player->stop();
+    dataQueue.notifyWaitPull();
+
     AudioFrame *frame;
     while((frame = dataQueue.pull_front(false)) != nullptr)
     {

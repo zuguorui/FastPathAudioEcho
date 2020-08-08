@@ -74,6 +74,7 @@ bool SLESRecorder::init(SLESEngine &engine, ISLESRecorderCallback *dataCallback,
         return false;
     }
 
+    // 设置recorder的config为SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION，这是开启录音器低延迟的方法。
     SLAndroidConfigurationItf recordConfig;
     result = (*recorderObject)->GetInterface(recorderObject, SL_IID_ANDROIDCONFIGURATION, &recordConfig);
     if(result == SL_RESULT_SUCCESS)
@@ -124,12 +125,14 @@ bool SLESRecorder::init(SLESEngine &engine, ISLESRecorderCallback *dataCallback,
 
 
 
-
+    // 要注意，OpenSLES在创建好播放器或者录音器后，需要手动Enqueue一次，才能触发主动回调。
     result = (*recorderBufferQueue)->Enqueue(recorderBufferQueue, audioBuffer, framesPerBuffer * sizeof(int16_t));
     if(result != SL_RESULT_SUCCESS)
     {
         return false;
     }
+
+    (*recorderRecord)->SetRecordState(recorderRecord, SL_RECORDSTATE_STOPPED);
     return true;
 }
 
@@ -156,6 +159,13 @@ void SLESRecorder::start() {
         return;
     }
     SLresult result;
+    SLuint32 recordState;
+    (*recorderRecord)->GetRecordState(recorderRecord, &recordState);
+    if(recordState == SL_RECORDSTATE_RECORDING)
+    {
+        LOGE("recorder already recording");
+        return;
+    }
     result = (*recorderRecord)->SetRecordState(recorderRecord, SL_RECORDSTATE_RECORDING);
 }
 

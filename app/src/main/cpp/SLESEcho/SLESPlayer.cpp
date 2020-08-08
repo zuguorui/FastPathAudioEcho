@@ -24,6 +24,7 @@ bool SLESPlayer::init(SLESEngine &engine, ISLESPlayerCallback *dataCallback, int
     this->framesPerBuffer = framesPerBuffer;
     this->channelCount = channelCount;
 
+    // 初始化一个buffer。
     if(audioBuffer)
     {
         free(audioBuffer);
@@ -33,6 +34,7 @@ bool SLESPlayer::init(SLESEngine &engine, ISLESPlayerCallback *dataCallback, int
     SLEngineItf engineEngine = engine.getEngine();
     SLresult result;
 
+    // 初始化一个outputMix
     SLInterfaceID ids1[1] = {SL_IID_OUTPUTMIX};
     SLboolean reqs1[1] = {SL_BOOLEAN_FALSE};
     result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, 0, ids1, reqs1);
@@ -98,12 +100,14 @@ bool SLESPlayer::init(SLESEngine &engine, ISLESPlayerCallback *dataCallback, int
         }
     }
 
-
+    // 要注意，OpenSLES在创建好播放器或者录音器后，需要手动Enqueue一次，才能触发主动回调。
     result = (*playerBufferQueue)->Enqueue(playerBufferQueue, audioBuffer, framesPerBuffer * channelCount * sizeof(int16_t));
     if(result != SL_RESULT_SUCCESS)
     {
         return false;
     }
+
+    (*playerPlay)->SetPlayState(playerPlay, SL_PLAYSTATE_STOPPED);
 
 
 
@@ -134,6 +138,15 @@ void SLESPlayer::start() {
         return;
     }
     SLresult result;
+    // 如果已经在播放了，就返回。
+    SLuint32 playState;
+    (*playerPlay)->GetPlayState(playerPlay, &playState);
+    if(playState == SL_PLAYSTATE_PLAYING)
+    {
+        return;
+    }
+    // 播放之前，需要设为停止状态，然后enqueue一个空buffer，不然容易出现问题。
+    (*playerPlay)->SetPlayState(playerPlay, SL_PLAYSTATE_STOPPED);
     memset(audioBuffer, 0, framesPerBuffer * channelCount * sizeof(int16_t));
     result = (*playerBufferQueue)->Enqueue(playerBufferQueue, audioBuffer, framesPerBuffer * channelCount * sizeof(int16_t));
     result = (*playerPlay)->SetPlayState(playerPlay, SL_PLAYSTATE_PLAYING);
@@ -164,6 +177,6 @@ void SLESPlayer::playerCallback(SLAndroidSimpleBufferQueueItf bq, void *context)
 }
 
 void SLESPlayer::processOutput(SLAndroidSimpleBufferQueueItf bq) {
-    int32_t writeSize = dataCallback->writeData(audioBuffer, framesPerBuffer);
-    (*bq)->Enqueue(bq, audioBuffer, writeSize * channelCount * sizeof(int16_t));
+    int32_t writtenFrames = dataCallback->writeData(audioBuffer, framesPerBuffer);
+    (*bq)->Enqueue(bq, audioBuffer, writtenFrames * channelCount * sizeof(int16_t));
 }

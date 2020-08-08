@@ -57,23 +57,32 @@ bool SLESEcho::init(int32_t sampleRate, int32_t framesPerBuffer, int32_t micID) 
 }
 
 void SLESEcho::destroy() {
-    engine.destroy();
+
     recorder.destroy();
     player.destroy();
+    engine.destroy();
 }
 
 
 
 void SLESEcho::start() {
-    recorder.start();
+    // 为了降低延迟，先启动播放器，让它的回调函数阻塞，一旦录音器有数据填充进来，可以立刻开始播放。
     player.start();
+    recorder.start();
 
 }
 
 void SLESEcho::stop() {
-    player.stop();
+    // 首先调用对应部件的stop方法，该方法是异步的，不会阻塞。但是回调函数可能仍然在阻塞，因此要对buffer进行设置，
+    // 解除等待状态，然后再恢复阻塞功能。
     recorder.stop();
+    buffer.setWaitPutState(false);
 
+    player.stop();
+    buffer.setWaitGetState(false);
+
+    buffer.setWaitGetState(true);
+    buffer.setWaitPutState(true);
 }
 
 int32_t SLESEcho::writeData(void *audioData, int32_t numFrames) {

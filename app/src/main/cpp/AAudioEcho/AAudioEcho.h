@@ -14,18 +14,19 @@
 #include "thread"
 #include "AAudioPlayer.h"
 #include "AAudioRecorder.h"
+#include "IEcho.h"
 
 
 using namespace std;
 
-class AAudioEcho: public IAAudioPlayerCallback, public IAAudioRecorderCallback {
+class AAudioEcho: public IEcho, public IAAudioPlayerCallback, public IAAudioRecorderCallback {
 public:
     AAudioEcho();
     ~AAudioEcho();
-    bool init(int32_t sampleRate, int32_t framesPerBuffer = 256, int32_t micID = 0);
-    void destroy();
-    void start();
-    void stop();
+    bool init(int32_t sampleRate, int32_t framesPerBuffer = 256, int32_t micID = 0) override;
+    void destroy() override;
+    void start() override;
+    void stop() override;
 
     int32_t writeData(AAudioStream *stream, void *audioData, int32_t numFrames) override;
 

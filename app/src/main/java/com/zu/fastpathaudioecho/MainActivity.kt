@@ -5,6 +5,7 @@ import android.content.Context
 import android.media.AudioManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import com.permissionx.guolindev.PermissionX
 import kotlinx.android.synthetic.main.activity_main.*
@@ -38,6 +39,8 @@ class MainActivity : AppCompatActivity() {
             tv_frames_per_buffer.text = value.toString()
         }
 
+    private var selectedApi: Int = -1
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -45,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         PermissionX.init(this).permissions(Manifest.permission.RECORD_AUDIO).request{
                 allGranted, grantedList, deniedList ->
             if (allGranted) {
-                Toast.makeText(this, "All permissions are granted", Toast.LENGTH_LONG).show()
+                //Toast.makeText(this, "All permissions are granted", Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(this, "These permissions are denied: $deniedList", Toast.LENGTH_LONG).show()
             }
@@ -55,10 +58,10 @@ class MainActivity : AppCompatActivity() {
         sampleRate = audioManager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE).toInt()
         framesPerBuffer = audioManager.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER).toInt()
 
-        nInit(sampleRate, framesPerBuffer)
 
         playState = false
 
+        nInit(sampleRate, framesPerBuffer, 3)
         btn_start.setOnClickListener{
             if(playState)
             {
@@ -66,7 +69,23 @@ class MainActivity : AppCompatActivity() {
             }
             else
             {
+//                val tempApi = when{
+//                    rb_sl.isChecked -> 0
+//                    rb_aaudio.isChecked -> 1
+//                    rb_oboe_sl.isChecked -> 2
+//                    else -> 3
+//                }
+//                if(tempApi != selectedApi)
+//                {
+//                    nDestroy()
+//                    if(!nInit(sampleRate, framesPerBuffer, tempApi))
+//                    {
+//                        Log.e(TAG, "init echo error")
+//                    }
+//                }
+//                selectedApi = tempApi
                 nStart()
+
             }
             playState = !playState
         }
@@ -82,7 +101,7 @@ class MainActivity : AppCompatActivity() {
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.
      */
-    external fun nInit(sampleRate: Int, framePerBuffer: Int): Boolean
+    external fun nInit(sampleRate: Int, framePerBuffer: Int, api: Int): Boolean
     external fun nDestroy()
     external fun nStart()
     external fun nStop()
@@ -93,5 +112,7 @@ class MainActivity : AppCompatActivity() {
         init {
             System.loadLibrary("native-lib")
         }
+
+        private const val TAG = "MainActivity"
     }
 }
