@@ -24,7 +24,7 @@ public:
 
     int getSize();
 
-    // put a element, if wait = true, put option will wait until the length of data queue is less than specified size.
+    // put an element, if wait = true, put option will wait until the length of data queue is less than specified size.
     void put(T t, bool wait = true);
 
     // get a element, if wait = true, it will wait until the data queue is not empty. If wait = false, it will return nullptr if the data queue is empty.

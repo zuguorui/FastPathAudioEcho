@@ -1,5 +1,5 @@
 //
-// Created by incus on 2020-06-24.
+// Created by zu on 2020-06-24.
 //
 
 #include "OboeEcho.h"
@@ -38,7 +38,7 @@ bool OboeEcho::init(int32_t sampleRate, AudioApi api, int32_t framesPerBuffer, i
     inputBuilder.setCallback(this);
     inputBuilder.setDirection(Direction::Input);
     inputBuilder.setChannelCount(ChannelCount::Mono);
-    inputBuilder.setPerformanceMode(PerformanceMode::LowLatency);
+    inputBuilder.setPerformanceMode(PerformanceMode::LowLatency); // 指定为低延迟
     inputBuilder.setSharingMode(SharingMode::Shared);
     inputBuilder.setFormat(AudioFormat::I16);
     inputBuilder.setSampleRate(sampleRate);
@@ -57,7 +57,7 @@ bool OboeEcho::init(int32_t sampleRate, AudioApi api, int32_t framesPerBuffer, i
     outputBuilder.setCallback(this);
     outputBuilder.setDirection(Direction::Output);
     outputBuilder.setChannelCount(ChannelCount::Mono);
-    outputBuilder.setPerformanceMode(PerformanceMode::LowLatency);
+    outputBuilder.setPerformanceMode(PerformanceMode::LowLatency); // 指定为低延迟
     outputBuilder.setSharingMode(SharingMode::Shared);
     outputBuilder.setFormat(AudioFormat::I16);
     outputBuilder.setSampleRate(sampleRate);
@@ -126,15 +126,16 @@ void OboeEcho::start() {
         return;
     }
     playFlag = true;
-    SLESJustStart = true;
+    /*
+     * 如果指定OpenSLES，则该标识为客户端是否刚启动播放。因为OpenSLES在启动时需要手动Enqueue一个空buffer。
+     * 并且这个Enqueue的过程不是异步的，它会阻塞start方法。
+     * 而由于我们希望尽可能降低播放延迟，因此都是首先启动play流。此时音频数据buffer是空的，play方法就会阻塞在
+     * 回调函数里，等待录音流放入数据。但是play的start方法一直阻塞导致无法进行到recorder的start方法，就会发生死锁。
+     * */
+    justStart = true;
 
     playStream->start(10 * NANO_SEC_IN_MILL_SEC);
     recordStream->start(10 * NANO_SEC_IN_MILL_SEC);
-
-
-
-
-
 
 }
 
@@ -167,10 +168,10 @@ OboeEcho::onAudioReady(AudioStream *oboeStream, void *audioData, int32_t numFram
     {
         LOGD("player callback called");
 
-        int32_t readSize = buffer->getRange((int16_t *)audioData, numFrames, !SLESJustStart);
-        if(SLESJustStart)
+        int32_t readSize = buffer->getRange((int16_t *)audioData, numFrames, !justStart);
+        if(justStart)
         {
-            SLESJustStart = false;
+            justStart = false;
         }
 //        int32_t readSize = 0;
 //        sleep(2);

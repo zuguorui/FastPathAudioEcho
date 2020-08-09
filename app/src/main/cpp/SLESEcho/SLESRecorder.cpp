@@ -75,12 +75,19 @@ bool SLESRecorder::init(SLESEngine &engine, ISLESRecorderCallback *dataCallback,
     }
 
     // 设置recorder的config为SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION，这是开启录音器低延迟的方法。
-    SLAndroidConfigurationItf recordConfig;
+    SLAndroidConfigurationItf recordConfig = nullptr;
     result = (*recorderObject)->GetInterface(recorderObject, SL_IID_ANDROIDCONFIGURATION, &recordConfig);
-    if(result == SL_RESULT_SUCCESS)
+    if(result == SL_RESULT_SUCCESS && recordConfig != nullptr)
     {
         SLuint32 presentValue = SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION;
-        (*recordConfig)->SetConfiguration(recordConfig, SL_ANDROID_KEY_RECORDING_PRESET, &presentValue, sizeof(SLuint32));
+        result = (*recordConfig)->SetConfiguration(recordConfig, SL_ANDROID_KEY_RECORDING_PRESET, &presentValue, sizeof(SLuint32));
+        if(result != SL_RESULT_SUCCESS)
+        {
+            LOGE("failed to set config SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION");
+        }
+    } else
+    {
+        LOGE("failed to get config obj");
     }
 
 // 初始化AudioRecorder

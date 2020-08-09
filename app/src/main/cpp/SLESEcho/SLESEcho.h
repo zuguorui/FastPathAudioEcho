@@ -1,9 +1,9 @@
 //
-// Created by incus on 2020-06-18.
+// Created by zu on 2020-06-18.
 //
 
-#ifndef INCUSAUDIOPROCESS_AUDIOECHO2_H
-#define INCUSAUDIOPROCESS_AUDIOECHO2_H
+#ifndef _SLES_ECHO_H_
+#define _SLES_ECHO_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,4 +71,4 @@ private:
 };
 
 
-#endif //INCUSAUDIOPROCESS_AUDIOECHO2_H
+#endif

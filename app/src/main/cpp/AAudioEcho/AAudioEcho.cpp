@@ -48,7 +48,7 @@ bool AAudioEcho::init(int32_t sampleRate, int32_t framesPerBuffer, int32_t micID
 bool AAudioEcho::newRecorder() {
 
     recorder = new AAudioRecorder();
-    if(!recorder->init(this, sampleRate, framesPerBuffer, micID))
+    if(!recorder->init(this, sampleRate, AAudioRecorder::PERFORMANCE_MODE::LOW_LATENCY, framesPerBuffer, micID))
     {
         recorder->destroy();
         delete(recorder);
@@ -70,7 +70,7 @@ void AAudioEcho::deleteRecorder() {
 bool AAudioEcho::newPlayer() {
     player = new AAudioPlayer();
 
-    if(!player->init(this, sampleRate, 1,  AAudioPlayer::LOW_LATENCY, framesPerBuffer))
+    if(!player->init(this, sampleRate, 1,  AAudioPlayer::PERFORMANCE_MODE::LOW_LATENCY, framesPerBuffer))
     {
         LOGE("init player failed");
         player->destroy();
@@ -96,6 +96,8 @@ void AAudioEcho::destroy() {
 
 void AAudioEcho::start() {
     playFlag = true;
+    // 先启动player使其处于等待状态。
+
     player->start();
     recorder->start();
 
@@ -118,27 +120,29 @@ void AAudioEcho::stop() {
 
 int32_t AAudioEcho::writeData(AAudioStream *stream, void *audioData, int32_t numFrames) {
 
+    // 对于AAudio来说，它并不像OpenSLES那样会返回指定帧数的数据，而是会变化的。由于这里使用AudioFrame为单位存储一段数据，因此需要手动拼接。
+    LOGD("writeData, numFrames = %d", numFrames);
     if(!player)
     {
-        return -1;
+        return AAUDIO_CALLBACK_RESULT_CONTINUE;
     }
     if(!playFlag)
     {
         return AAUDIO_CALLBACK_RESULT_CONTINUE;
     }
-    LOGD("writeData, numFrames = %d", numFrames);
+
     int dstIndex = 0;
     int16_t *playBuffer = (int16_t *)audioData;
     while(dstIndex < numFrames)
     {
         if(playingFrame == nullptr)
         {
-            playingFrame = dataQueue.pull_front(true);
+            playingFrame = dataQueue.pull_front();
 
             playingFrameIndex = 0;
             if(playingFrame == nullptr)
             {
-                break;
+                return AAUDIO_CALLBACK_RESULT_CONTINUE;
             }
         } else
         {
@@ -157,7 +161,7 @@ int32_t AAudioEcho::writeData(AAudioStream *stream, void *audioData, int32_t num
 int32_t AAudioEcho::readData(AAudioStream *stream, void *audioData, int32_t numFrames) {
     if(!recorder)
     {
-        return -1;
+        return AAUDIO_CALLBACK_RESULT_CONTINUE;
     }
     if(!playFlag)
     {
@@ -189,6 +193,8 @@ int32_t AAudioEcho::readData(AAudioStream *stream, void *audioData, int32_t numF
 }
 
 inline AudioFrame* AAudioEcho::getFreeNode() {
+    // 获取一个废弃的AudioFrame用以填充新数据。如果junkQueue里没有，那么新建一个。所有AudioFrame的大小都是
+    // framesPerBuffer * sizeof(int16)。
     AudioFrame *frame = junkQueue.pull_front(false);
     if(!frame)
     {

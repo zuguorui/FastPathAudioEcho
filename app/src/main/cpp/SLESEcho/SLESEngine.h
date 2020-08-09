@@ -12,6 +12,9 @@
 
 using namespace std;
 
+/**
+ * 封装OpenSL ES engine的类。
+ * */
 class SLESEngine {
 public:
     SLESEngine();

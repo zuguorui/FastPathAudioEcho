@@ -71,12 +71,30 @@ bool SLESPlayer::init(SLESEngine &engine, ISLESPlayerCallback *dataCallback, int
     }
 
 
+
     result = (*playerObject)->Realize(playerObject, SL_BOOLEAN_FALSE);
     if(result != SL_RESULT_SUCCESS)
     {
         return false;
     }
 
+    // 这是配置低延迟模式的代码，但是configItf一直是null。
+    SLAndroidConfigurationItf configItf = nullptr;
+    result = (*playerObject)->GetInterface(playerObject, SL_IID_ANDROIDCONFIGURATION, &configItf);
+    if(result == SL_RESULT_SUCCESS && configItf != nullptr)
+    {
+        // Set the performance mode.
+        SLuint32 performanceMode = SL_ANDROID_PERFORMANCE_LATENCY;
+        result = (*configItf)->SetConfiguration(configItf, SL_ANDROID_KEY_PERFORMANCE_MODE,
+                                                &performanceMode, sizeof(performanceMode));
+        if(result != SL_RESULT_SUCCESS)
+        {
+            LOGE("failed to enable low latency of player");
+        }
+    } else
+    {
+        LOGE("failed to get config obj");
+    }
 
     result = (*playerObject)->GetInterface(playerObject, SL_IID_PLAY, &playerPlay);
     if(result != SL_RESULT_SUCCESS)

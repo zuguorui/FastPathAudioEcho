@@ -64,6 +64,7 @@ void AAudioPlayer::destroy() {
         emptyBuffer = nullptr;
     }
 
+
     if(outputStream)
     {
         AAudioStream_close(outputStream);
@@ -107,7 +108,6 @@ void AAudioPlayer::start() {
         LOGE("request start output stream error");
         return;
     }
-    //writeData(emptyBuffer, framesPerBuffer);
 }
 
 void AAudioPlayer::stop() {

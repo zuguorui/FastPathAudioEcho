@@ -2,8 +2,8 @@
 // Created by 祖国瑞 on 2020-06-06.
 //
 
-#ifndef AAUDIOTEST_AAUDIOECHO_H
-#define AAUDIOTEST_AAUDIOECHO_H
+#ifndef _AAUDIO_ECHO_H_
+#define _AAUDIO_ECHO_H_
 
 #include <stdlib.h>
 #include <iostream>
@@ -19,6 +19,9 @@
 
 using namespace std;
 
+/**
+ * 基于AAudio的Echo。
+ * */
 class AAudioEcho: public IEcho, public IAAudioPlayerCallback, public IAAudioRecorderCallback {
 public:
     AAudioEcho();
@@ -47,7 +50,9 @@ private:
     AudioFrame *playingFrame = nullptr;
     int32_t playingFrameIndex = 0;
 
+    // 未播放的音频数据，录音器的数据存放到这里，播放器从这里取数据进行播放。
     BlockQueue<AudioFrame *> dataQueue{10};
+    // 已播放的数据，播放器取一个frame播放完后会存放到这。为了避免频繁申请内存。
     BlockQueue<AudioFrame *> junkQueue{10};
 
     inline AudioFrame *getFreeNode();
@@ -65,4 +70,4 @@ private:
 };
 
 
-#endif //AAUDIOTEST_AAUDIOECHO_H
+#endif //_AAUDIO_ECHO_H_

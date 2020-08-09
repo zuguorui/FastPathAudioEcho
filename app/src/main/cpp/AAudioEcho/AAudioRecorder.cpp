@@ -16,11 +16,12 @@ AAudioRecorder::~AAudioRecorder() {
 
 }
 
-bool AAudioRecorder::init(IAAudioRecorderCallback *dataCallback, int32_t sampleRate, int32_t framesPerBuffer, int32_t micID) {
+bool AAudioRecorder::init(IAAudioRecorderCallback *dataCallback, int32_t sampleRate, PERFORMANCE_MODE mode, int32_t framesPerBuffer, int32_t micID) {
     this->sampleRate = sampleRate;
     this->framesPerBuffer = framesPerBuffer;
     this->micID = micID;
     this->dataCallback = dataCallback;
+    this->mode = mode;
 
     aaudio_result_t result;
     AAudioStreamBuilder *inputBuilder;
@@ -43,6 +44,7 @@ bool AAudioRecorder::init(IAAudioRecorderCallback *dataCallback, int32_t sampleR
 
     AAudioStreamBuilder_setChannelCount(inputBuilder, 1);
     AAudioStreamBuilder_setDirection(inputBuilder, AAUDIO_DIRECTION_INPUT);
+    AAudioStreamBuilder_setPerformanceMode(inputBuilder, mode); // 在这里设置低延迟模式。
 
     if(dataCallback)
     {
@@ -55,6 +57,9 @@ bool AAudioRecorder::init(IAAudioRecorderCallback *dataCallback, int32_t sampleR
         LOGE("open record stream failed");
         return false;
     }
+
+    aaudio_performance_mode_t actualPerformance = AAudioStream_getPerformanceMode(inputStream);
+    LOGD("actual performance mode is %d", actualPerformance);
 
     return true;
 
